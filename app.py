@@ -10,9 +10,7 @@ from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_classic.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
-# ==========================================
-# CONFIGURATION & SETUP
-# ==========================================
+# ------ SETUp -------- #
 st.set_page_config(page_title="AI Travel Planning Assistant (Singapore)", layout="wide")
 
 st.title("🇸🇬 AI Travel Planning Assistant")
@@ -23,9 +21,7 @@ api_key = st.sidebar.text_input("Enter Google Gemini API Key:", type="password")
 if api_key:
     os.environ["GOOGLE_API_KEY"] = api_key
 
-# ==========================================
-# 1. RAG: KNOWLEDGE BASE & VECTOR STORE
-# ==========================================
+# RAG Setup
 @st.cache_resource
 def initialize_vector_store():
     kb_path = "data/singapore_guide.md"
@@ -38,7 +34,7 @@ def initialize_vector_store():
     loader = TextLoader(kb_path, encoding="utf-8")
     docs = loader.load()
     
-    # Split text into chunks
+    # Split into chuks
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=400, chunk_overlap=50)
     splits = text_splitter.split_documents(docs)
     
@@ -55,9 +51,8 @@ except Exception as e:
     st.error(f"Error initializing knowledge base: {e}")
     st.stop()
 
-# ==========================================
-# 2. MCP TOOLS (Weather & Currency - 100% Free)
-# ==========================================
+
+# MCP tools for Weather & Currency
 @tool
 def get_weather_forecast(query: str = "Singapore") -> str:
     """Get the current weather forecast for Singapore to plan indoor or outdoor activities."""
@@ -109,9 +104,7 @@ def search_knowledge_base(query: str) -> str:
 
 tools = [get_weather_forecast, convert_currency, search_knowledge_base]
 
-# ==========================================
-# 3. AGENT & PROMPT ORCHESTRATION
-# ==========================================
+# LLM Prompt handling
 if not os.environ.get("GOOGLE_API_KEY"):
     st.warning("⚠️ Please input your Google Gemini API Key in the sidebar to begin.")
     st.stop()
@@ -119,7 +112,7 @@ if not os.environ.get("GOOGLE_API_KEY"):
 # Initialize LLM
 llm = ChatGoogleGenerativeAI(model="gemini-3.6-flash", temperature=0.2)
 
-# System Prompt Enforcement
+# System Prompt
 prompt = ChatPromptTemplate.from_messages([
     ("system", 
      "You are an expert AI Travel Planning Assistant for Singapore. "
@@ -139,9 +132,7 @@ prompt = ChatPromptTemplate.from_messages([
 agent = create_tool_calling_agent(llm, tools, prompt)
 agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True)
 
-# ==========================================
-# 4. STREAMLIT USER INTERFACE CHAT
-# ==========================================
+# User Interaction
 if "chat_history" not in st.session_state:
     st.session_state.chat_history = []
 
